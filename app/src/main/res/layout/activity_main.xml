@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+xmlns:android="http://schemas.android.com/apk/res/android"
+android:id="@+id/root_layout"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:orientation="vertical"
+android:padding="16dp"
+android:background="#d7ded7"
+    >
+
+<TextView
+    android:id="@+id/fromTV"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Von" />
+
+<AutoCompleteTextView
+    android:id="@+id/auto_complete_text_view"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" />
+
+<TextView
+    android:id="@+id/dateTV"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="abreisedatum" />
+
+<Button
+    android:id="@+id/dateBTN"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="05.12.2019" />
+
+<TextView
+    android:id="@+id/timeTV"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Uhrzeit" />
+
+<Button
+    android:id="@+id/timeBTN"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="12:12" />
+
+
+</LinearLayout>
