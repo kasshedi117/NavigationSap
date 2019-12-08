@@ -44,5 +44,11 @@ android:background="#d7ded7"
     android:layout_height="wrap_content"
     android:text="12:12" />
 
+    <Button
+        android:id="@+id/insert"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="insert"/>
+
 
 </LinearLayout>

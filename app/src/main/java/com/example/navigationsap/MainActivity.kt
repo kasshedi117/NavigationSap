@@ -7,25 +7,24 @@ import android.util.Log
 import android.view.View
 import android.widget.*
 import com.example.navigationsap.model.Address
+import com.example.navigationsap.model.Travel
 import com.example.navigationsap.model.Trip
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
-import java.io.IOException
-import java.io.InputStream
 import java.util.*
 import kotlinx.serialization.*
-import kotlinx.serialization.json.JSON
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
-import kotlin.collections.ArrayList
 
 
 class MainActivity : AppCompatActivity() {
     private lateinit var subscription: Disposable
     private var db: AppDataBase? = null
-    private var addressDao: AddressDao? = null
+    private var tripDao: TripDao? = null
+    private var travelDao: TravelDao? = null
+    private lateinit var trip: Trip
     @ImplicitReflectionSerializer
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,22 +60,20 @@ class MainActivity : AppCompatActivity() {
         Log.i("Hedi", "Hedi json $tripJson")
 
 
-        val trip = Gson().fromJson(tripJson, Trip::class.java)
+         trip = Gson().fromJson(tripJson, Trip::class.java)
         Log.i("Hedi", "Hedi  trip $trip")
 
         subscription = Observable.fromCallable {
             db = AppDataBase.getAppDataBase(context = this)
-            addressDao = db?.addressDao()
-            addressDao?.getAllTrips()
+            tripDao = db?.tripDao()
+            tripDao?.getAllTrips()
         }
             .concatMap { dbList ->
                 Log.i("Hedi", "Hedi dbList $dbList")
-                if(dbList.isEmpty())
-                    {
-                        addressDao!!.insert(trip)
-                        Observable.just(dbList)
-                    }
-                else {
+                if (dbList.isEmpty()) {
+                    tripDao!!.insert(trip)
+                    Observable.just(dbList)
+                } else {
                     Observable.just(dbList)
                 }
             }
@@ -90,6 +87,7 @@ class MainActivity : AppCompatActivity() {
                     onRetrieveSuccess(result as? List<Trip>)
                 },
                 { error -> Log.i("Hedi", "Hedi error ${error.message}") })
+        insert.setOnClickListener { onClick() }
 
     }
 
@@ -173,31 +171,29 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    private fun onClick() {
+        val departure = Address(trip.departure, trip.time, trip.date)
+        val arrival = Address(trip.departure, trip.time, trip.date)
+        val travel = Travel(0, departure, arrival)
 
-    @ImplicitReflectionSerializer
-    private fun getLocationsJson(): String? {
-        var locations: String? = ""
-        try {
-            val inputStream: InputStream = assets.open("cities-germany.json")
-            // val  inputStream:InputStream = assets.open("test.json")
-            val jsonData = JSON.stringify(inputStream.bufferedReader().use { it.readText() })
-            // locations = inputStream.bufferedReader().use{it.readText()}
+        db = AppDataBase.getAppDataBase(context = this)
+        travelDao = db?.travelDao()
+        //Insert Case
+        val thread = Thread {
 
-            println("lala")
-            println("lal")
-            println("la")
-            println("l")
-            println("la")
-            println("la")
-            println("lala")
-            println("laa")
-            println(jsonData)
-        } catch (e: IOException) {
 
+            travelDao?.insert(travel)
+
+            //fetch Records
+            travelDao?.getAllTravels()?.forEach()
+            {
+                Log.i("Fetch Records", "Id:  : ${it.departure}")
+                Log.i("Fetch Records", "Name:  : ${it.arrival}")
+            }
         }
+        thread.start()
 
-        return locations
     }
-
 }
+
 

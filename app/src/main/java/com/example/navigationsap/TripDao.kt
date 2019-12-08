@@ -4,7 +4,7 @@ import androidx.room.*
 import com.example.navigationsap.model.Trip
 
 @Dao
-interface AddressDao {
+interface TripDao {
     @get:Query("SELECT * FROM trip")
     val all: Trip?
 
