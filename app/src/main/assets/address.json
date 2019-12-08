@@ -1,0 +1,22 @@
+{
+  "departure": "heidelberg",
+  "time": "12:00",
+  "date": "01/07/2019",
+  "addresses": [
+    {
+      "arrival": "saarbrucken",
+      "time": "12:30",
+      "date": "01/07/2019"
+    },
+    {
+      "arrival": "munich",
+      "time": "15:30",
+      "date": "01/07/2019"
+    },
+    {
+      "arrival": "koln",
+      "time": "13:30",
+      "date": "01/07/2019"
+    }
+  ]
+}

@@ -3,23 +3,37 @@ package com.example.navigationsap
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.app.DatePickerDialog
+import android.util.Log
 import android.view.View
 import android.widget.*
+import com.example.navigationsap.model.Address
+import com.example.navigationsap.model.Trip
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.IOException
 import java.io.InputStream
 import java.util.*
+import kotlinx.serialization.*
+import kotlinx.serialization.json.JSON
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
+import io.reactivex.schedulers.Schedulers
+
 
 class MainActivity : AppCompatActivity() {
-
+    private lateinit var subscription: Disposable
+    private var db: AppDataBase? = null
+    private var addressDao: AddressDao? = null
+    @ImplicitReflectionSerializer
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         // Initialize a new array with elements
         val addresses = arrayOf(
-            "Walldorf","Rohrbach","Kirchheim","Sandhausen","St ilgen",
-            "Weststadt","Neuenheim", "BismarketPlace"
+            "Walldorf", "Rohrbach", "Kirchheim", "Sandhausen", "St ilgen",
+            "Weststadt", "Neuenheim", "BismarketPlace"
         )
 
 
@@ -37,14 +51,20 @@ class MainActivity : AppCompatActivity() {
 
         // set on-click listener
         dateBTN.setOnClickListener {
-            val dpd = DatePickerDialog(this, DatePickerDialog.OnDateSetListener{ _, mYear, mMonth, mDay ->
-                dateTV.setText(mYear)
-            }, year, month, day)
+            val dpd = DatePickerDialog(
+                this,
+                DatePickerDialog.OnDateSetListener { _, mYear, mMonth, mDay ->
+                    dateTV.setText(mYear)
+                },
+                year,
+                month,
+                day
+            )
 
             dpd.show()
         }
 
-        // fromTV.setText(getLocationsJson())
+        fromTV.setText(getLocationsJson())
 
         // Set the AutoCompleteTextView adapter
         auto_complete_text_view.setAdapter(adapter)
@@ -56,45 +76,118 @@ class MainActivity : AppCompatActivity() {
 
 
         // Set an item click listener for auto complete text view
-        auto_complete_text_view.onItemClickListener = AdapterView.OnItemClickListener{
-                parent,view,position,id->
-            val selectedItem = parent.getItemAtPosition(position).toString()
-            // Display the clicked item using toast
-            Toast.makeText(applicationContext,"Selected : $selectedItem",Toast.LENGTH_SHORT).show()
-        }
+        auto_complete_text_view.onItemClickListener =
+            AdapterView.OnItemClickListener { parent, view, position, id ->
+                val selectedItem = parent.getItemAtPosition(position).toString()
+                // Display the clicked item using toast
+                Toast.makeText(applicationContext, "Selected : $selectedItem", Toast.LENGTH_SHORT)
+                    .show()
+            }
 
 
         // Set a dismiss listener for auto complete text view
         auto_complete_text_view.setOnDismissListener {
-            Toast.makeText(applicationContext,"Suggestion closed.",Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Suggestion closed.", Toast.LENGTH_SHORT).show()
         }
 
 
         // Set a click listener for root layout
-        root_layout.setOnClickListener{
+        root_layout.setOnClickListener {
             val text = auto_complete_text_view.text
-            Toast.makeText(applicationContext,"Inputted : $text",Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Inputted : $text", Toast.LENGTH_SHORT).show()
         }
 
 
         // Set a focus change listener for auto complete text view
-        auto_complete_text_view.onFocusChangeListener = View.OnFocusChangeListener{
-                view, b ->
-            if(b){
+        auto_complete_text_view.onFocusChangeListener = View.OnFocusChangeListener { view, b ->
+            if (b) {
                 // Display the suggestion dropdown on focus
                 auto_complete_text_view.showDropDown()
             }
         }
 
+        val tripJson = """
+            {
+              "departure": "heidelberg",
+              "time": "12:00",
+              "date": "01/07/2019",
+              "listAddresses": [
+                {
+                  "arrival": "saarbrucken",
+                  "time": "12:30",
+                  "date": "01/07/2019"
+                },
+                {
+                  "arrival": "munich",
+                  "time": "15:30",
+                  "date": "01/07/2019"
+                },
+                {
+                  "arrival": "koln",
+                  "time": "13:30",
+                  "date": "01/07/2019"
+                }
+              ]
+            }
+
+        """.trimIndent()
+        Log.i("Hedi", "Hedi json $tripJson")
+
+
+        val trip = Gson().fromJson(tripJson, Trip::class.java)
+        Log.i("Hedi", "Hedi  trip $trip")
+
+        subscription = Observable.fromCallable {
+            db = AppDataBase.getAppDataBase(context = this)
+            addressDao = db?.addressDao()
+            addressDao?.getAllTrips()
+        }
+            .concatMap { dbList ->
+                Log.i("Hedi", "Hedi dbList $dbList")
+                if(dbList.isEmpty())
+                    {
+                        addressDao!!.insert(trip)
+                        Observable.just(dbList)
+                    }
+                else {
+                    Observable.just(dbList)
+                }
+            }
+
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .doOnSubscribe {} //onRetrieveHitsStart()  }
+            .doOnTerminate {}// onLoadMoreFinish() }
+            .subscribe(
+                { result ->
+                    onRetrieveSuccess(result as? List<Trip>)
+                },
+                { error -> Log.i("Hedi", "Hedi error ${error.message}") })
 
     }
 
+    private fun onRetrieveSuccess(list: List<Trip>?) {
+        Log.i("Hedi", "Hedi list $list")
+    }
+
+    @ImplicitReflectionSerializer
     private fun getLocationsJson(): String? {
         var locations: String? = ""
         try {
-            val  inputStream:InputStream = assets.open("cities-germany.json")
-            locations = inputStream.bufferedReader().use{it.readText()}
+            val inputStream: InputStream = assets.open("cities-germany.json")
+            // val  inputStream:InputStream = assets.open("test.json")
+            val jsonData = JSON.stringify(inputStream.bufferedReader().use { it.readText() })
+            // locations = inputStream.bufferedReader().use{it.readText()}
 
+            println("lala")
+            println("lal")
+            println("la")
+            println("l")
+            println("la")
+            println("la")
+            println("lala")
+            println("laa")
+            println(jsonData)
         } catch (e: IOException) {
 
         }
