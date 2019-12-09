@@ -1,10 +1,9 @@
 package com.example.navigationsap.model
 
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-import com.example.navigationsap.ListConverter
+import com.example.navigationsap.utils.typeconverter.ListConverter
 
 @Entity
 @TypeConverters(ListConverter::class)

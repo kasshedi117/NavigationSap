@@ -1,9 +1,11 @@
-package com.example.navigationsap
+package com.example.navigationsap.database
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.navigationsap.DAO.TravelDao
+import com.example.navigationsap.DAO.TripDao
 import com.example.navigationsap.model.Travel
 import com.example.navigationsap.model.Trip
 

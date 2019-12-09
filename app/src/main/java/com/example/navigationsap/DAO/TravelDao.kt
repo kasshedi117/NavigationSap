@@ -1,4 +1,4 @@
-package com.example.navigationsap
+package com.example.navigationsap.DAO
 
 
 import androidx.room.*

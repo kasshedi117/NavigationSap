@@ -4,7 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-import com.example.navigationsap.AddressConverter
+import com.example.navigationsap.utils.typeconverter.AddressConverter
 
 @Entity
 @TypeConverters(AddressConverter::class)

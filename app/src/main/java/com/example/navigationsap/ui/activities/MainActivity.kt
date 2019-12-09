@@ -1,67 +1,52 @@
-package com.example.navigationsap
+package com.example.navigationsap.ui.activities
 
+import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.app.DatePickerDialog
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.*
+import com.example.navigationsap.DAO.TravelDao
+import com.example.navigationsap.DAO.TripDao
+import com.example.navigationsap.R
+import com.example.navigationsap.database.AppDataBase
 import com.example.navigationsap.model.Address
 import com.example.navigationsap.model.Travel
 import com.example.navigationsap.model.Trip
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.*
 import kotlinx.serialization.*
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
+import kotlinx.io.IOException
+import kotlinx.io.InputStream
 
 
 class MainActivity : AppCompatActivity() {
     private lateinit var subscription: Disposable
-    private var db: AppDataBase? = null
+    private var db: AppDataBase? = AppDataBase.INSTANCE
     private var tripDao: TripDao? = null
     private var travelDao: TravelDao? = null
     private lateinit var trip: Trip
+    private var arrival: Address = Address("","","")
+
     @ImplicitReflectionSerializer
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        auto_complete_text_view.visibility = View.VISIBLE
+
+        getTripFromJson()
+        init()
 
 
+    }
 
-        val tripJson = """
-            {
-              "departure": "heidelberg",
-              "time": "12:00",
-              "date": "01/07/2019",
-              "listAddresses": [
-                {
-                  "arrival": "saarbrucken",
-                  "time": "12:30",
-                  "date": "01/07/2019"
-                },
-                {
-                  "arrival": "munich",
-                  "time": "15:30",
-                  "date": "01/07/2019"
-                },
-                {
-                  "arrival": "koln",
-                  "time": "13:30",
-                  "date": "01/07/2019"
-                }
-              ]
-            }
-
-        """.trimIndent()
-        Log.i("Hedi", "Hedi json $tripJson")
-
-
-         trip = Gson().fromJson(tripJson, Trip::class.java)
-        Log.i("Hedi", "Hedi  trip $trip")
+    private fun init(){
 
         subscription = Observable.fromCallable {
             db = AppDataBase.getAppDataBase(context = this)
@@ -69,7 +54,6 @@ class MainActivity : AppCompatActivity() {
             tripDao?.getAllTrips()
         }
             .concatMap { dbList ->
-                Log.i("Hedi", "Hedi dbList $dbList")
                 if (dbList.isEmpty()) {
                     tripDao!!.insert(trip)
                     Observable.just(dbList)
@@ -87,17 +71,22 @@ class MainActivity : AppCompatActivity() {
                     onRetrieveSuccess(result as? List<Trip>)
                 },
                 { error -> Log.i("Hedi", "Hedi error ${error.message}") })
-        insert.setOnClickListener { onClick() }
 
+        initView()
+    }
+
+    private fun initView(){
+        fromInfoTV.setText(trip.departure)
+        dateFromInfoTV.setText(trip.date)
+        timeFromInfoTV.setText(trip.time)
     }
 
     private fun onRetrieveSuccess(list: List<Trip>?) {
         Log.i("Hedi", "Hedi list $list")
 
-     val addresses = list?.get(0)?.listAddresses
+        val addresses = list?.get(0)?.listAddresses
 
         val arrivalList:List<String> = addresses!!.map { it.arrival }
-
 
         // Initialize a new array adapter object
         val adapter = ArrayAdapter<String>(
@@ -106,28 +95,6 @@ class MainActivity : AppCompatActivity() {
              // Array
             arrivalList
         )
-
-        val c = Calendar.getInstance()
-        val year = c.get(Calendar.YEAR)
-        val month = c.get(Calendar.MONTH)
-        val day = c.get(Calendar.DAY_OF_MONTH)
-
-        // set on-click listener
-        dateBTN.setOnClickListener {
-            val dpd = DatePickerDialog(
-                this,
-                DatePickerDialog.OnDateSetListener { _, mYear, mMonth, mDay ->
-                    dateTV.setText(mYear)
-                },
-                year,
-                month,
-                day
-            )
-
-            dpd.show()
-        }
-
-            // fromTV.setText(getLocationsJson())
 
         // Set the AutoCompleteTextView adapter
         auto_complete_text_view.setAdapter(adapter)
@@ -143,6 +110,23 @@ class MainActivity : AppCompatActivity() {
             AdapterView.OnItemClickListener { parent, view, position, id ->
                 val selectedItem = parent.getItemAtPosition(position).toString()
                 // Display the clicked item using toast
+                auto_complete_text_view.visibility = View.GONE
+                toLL.visibility = View.VISIBLE
+
+                for(item in trip.listAddresses!!){
+                    Log.i("Hedi", "item:  : $item")
+                    if(item.arrival == selectedItem){
+                        arrival = item
+                    }
+                }
+
+
+                dateToInfoTV.setText(arrival.date)
+                timeToInfoTV.setText(arrival.time)
+
+                saveData()
+                hideKeyboard()
+
                 Toast.makeText(applicationContext, "Selected : $selectedItem", Toast.LENGTH_SHORT)
                     .show()
             }
@@ -150,7 +134,7 @@ class MainActivity : AppCompatActivity() {
 
         // Set a dismiss listener for auto complete text view
         auto_complete_text_view.setOnDismissListener {
-            Toast.makeText(applicationContext, "Suggestion closed.", Toast.LENGTH_SHORT).show()
+            // Toast.makeText(applicationContext, "Suggestion closed.", Toast.LENGTH_SHORT).show()
         }
 
 
@@ -171,16 +155,14 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun onClick() {
+    private fun saveData() {
         val departure = Address(trip.departure, trip.time, trip.date)
-        val arrival = Address(trip.departure, trip.time, trip.date)
         val travel = Travel(0, departure, arrival)
 
         db = AppDataBase.getAppDataBase(context = this)
         travelDao = db?.travelDao()
         //Insert Case
         val thread = Thread {
-
 
             travelDao?.insert(travel)
 
@@ -192,8 +174,32 @@ class MainActivity : AppCompatActivity() {
             }
         }
         thread.start()
-
     }
+
+    private fun getTripFromJson() {
+        try {
+            val inputStream:InputStream = assets.open("address.json")
+            val locations = inputStream.bufferedReader().use{it.readText()}
+            trip = Gson().fromJson(locations, Trip::class.java)
+        } catch (e: IOException) {
+
+        }
+    }
+
+    fun AppCompatActivity.hideKeyboard() {
+        val view = this.currentFocus
+        if (view != null) {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+
+            Log.i("Keyboard", "Hedi enter")
+        }
+        else {
+            Log.i("Keyboard", "Hedi enter")
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
+        }
+    }
+
 }
 
 

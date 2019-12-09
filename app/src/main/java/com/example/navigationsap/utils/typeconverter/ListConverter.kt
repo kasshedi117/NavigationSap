@@ -1,4 +1,4 @@
-package com.example.navigationsap
+package com.example.navigationsap.utils.typeconverter
 
 import android.util.Log
 import androidx.room.TypeConverter
@@ -13,7 +13,6 @@ class ListConverter {
 
     @TypeConverter
     fun listToJson(value: List<Address>?): String? {
-        Log.i("Hedii", "Hedi listToJson "+value)
         return Gson().toJson(value)
     }
 
@@ -21,7 +20,6 @@ class ListConverter {
     fun jsonToList(value: String?): List<Address>? {
 
         val objects = Gson().fromJson(value, Array<Address>::class.java) as Array<Address>
-        Log.i("Hedii", "Hedi jsonToList "+objects)
         val list = objects.toList()
         return list
     }

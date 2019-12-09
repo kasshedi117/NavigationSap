@@ -2,7 +2,7 @@
   "departure": "heidelberg",
   "time": "12:00",
   "date": "01/07/2019",
-  "addresses": [
+  "listAddresses": [
     {
       "arrival": "saarbrucken",
       "time": "12:30",
@@ -15,6 +15,16 @@
     },
     {
       "arrival": "koln",
+      "time": "13:30",
+      "date": "01/07/2019"
+    },
+    {
+      "arrival": "zarzouna",
+      "time": "13:30",
+      "date": "01/07/2019"
+    },
+    {
+      "arrival": "bizerte",
       "time": "13:30",
       "date": "01/07/2019"
     }
